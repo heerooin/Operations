@@ -104,7 +104,8 @@ def top_transactions(target_date: datetime = None):
     df = pd.DataFrame(transactions)
     if target_date:
         df['Дата операции'] = pd.to_datetime(df['Дата операции'], format='%d.%m.%Y %H:%M:%S')
-        df = df[df['Дата операции'] <= target_date]
+        start_date = target_date.replace(day=1, hour=0, minute=0, second=0)
+        df = df[(df['Дата операции'] >= start_date) & (df['Дата операции'] <= target_date)]
     
     sorted_transactions = df.sort_values(by='Сумма платежа').tail()
     for i in reversed(range(5)):
@@ -183,7 +184,3 @@ def stocks():
     
     current_stocks = list(stock.values())
     return current_stocks
-
-
-if __name__ == '__main__':
-    stocks()

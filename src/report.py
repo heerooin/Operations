@@ -38,11 +38,14 @@ def report_to_file(default_filename: str = "report_{timestamp}.json"):
 
 @report_to_file()
 def spending_by_category(
-        transactions: pd.DataFrame,
+        transactions: pd.DataFrame | list,
         category: str,
         date: Optional[str] = None
 ) -> pd.DataFrame:
     try:
+        if isinstance(transactions, list):
+            transactions = pd.DataFrame(transactions)
+            
         required_columns = {'Дата операции', 'Сумма операции', 'Категория'}
         if not required_columns.issubset(transactions.columns):
             missing = required_columns - set(transactions.columns)
@@ -56,9 +59,9 @@ def spending_by_category(
         target_date = pd.to_datetime(date, format='%d.%m.%Y') if date else pd.to_datetime(datetime.now())
         start_date = target_date - pd.DateOffset(months=3)
         mask = (
-            (transactions['Категория'].str.strip() == category.strip()),
-            (transactions['Дата операции'] >= start_date),
-            (transactions['Дата операции'] <= target_date),
+            (transactions['Категория'].str.strip() == category.strip()) &
+            (transactions['Дата операции'] >= start_date) &
+            (transactions['Дата операции'] <= target_date) &
             (transactions['Сумма операции'] < 0)
         )
         filtered = transactions.loc[mask].copy()
