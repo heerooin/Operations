@@ -16,6 +16,7 @@ def test_main_view():
     assert isinstance(data['top_transactions'], list)
     assert isinstance(data['currency_rates'], list)
     assert isinstance(data['stock_prices'], list)
+
     test_date = datetime(2024, 1, 1)
     data = main_view(test_date)
     assert isinstance(data, dict)

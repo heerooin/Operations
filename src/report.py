@@ -76,7 +76,10 @@ def spending_by_category(
             )
             .sort_values('Месяц')
         )
-        monthly_stats = monthly_stats.rename(columns={'Сумма_расходов': 'Сумма расходов'})
+        monthly_stats = monthly_stats.rename(columns={
+            'Сумма_расходов': 'Сумма расходов',
+            'Количество_операций': 'Количество операций'
+        })
         total = monthly_stats['Сумма расходов'].sum()
         monthly_stats['Процент'] = (monthly_stats['Сумма расходов'] / total * 100).round(2)
         monthly_stats['Месяц'] = monthly_stats['Месяц'].dt.strftime('%Y-%m')

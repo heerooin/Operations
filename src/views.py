@@ -34,10 +34,10 @@ def main_view(target_date: datetime = None):
     try:
         parsed_data = json.loads(data)
         parsed_data['greeting'] = date_now()
-        parsed_data['cards'] = cards_info(target_date)
-        parsed_data['top_transactions'] = top_transactions(target_date)
-        parsed_data['currency_rates'] = currency()
-        parsed_data['stock_prices'] = stocks()
+        parsed_data['cards'] = cards_info(target_date) or []
+        parsed_data['top_transactions'] = top_transactions(target_date) or []
+        parsed_data['currency_rates'] = currency() or []
+        parsed_data['stock_prices'] = stocks() or []
         
         logger.info("Success")
         return parsed_data

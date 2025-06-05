@@ -34,10 +34,13 @@ def xlsx_open(file_path):
     """
     try:
         logger.info(f"Opening Excel file: {file_path}")
+        if not os.path.exists(file_path):
+            logger.error(f"File not found: {file_path}")
+            return []
         df = pd.read_excel(file_path)
         return df.to_dict("records")
-    except FileNotFoundError:
-        logger.error(f"File not found: {file_path}")
+    except Exception as e:
+        logger.error(f"Error opening file {file_path}: {str(e)}")
         return []
 
 
@@ -47,6 +50,9 @@ def open_file(file_path: str) -> list:
     """
     try:
         logger.info(f"Opening JSON file: {file_path}")
+        if not os.path.exists(file_path):
+            logger.error(f"File not found: {file_path}")
+            return []
         with open(file_path, encoding="utf-8") as file:
             return json.load(file)
     except Exception as e:
@@ -59,7 +65,7 @@ def cards_info(target_date: datetime = None):
     Получает информацию о картах и их операциях.
     """
     logger.info(f"Getting cards info for date: {target_date}")
-    cards = xlsx_open('../data/operations.xlsx')
+    cards = xlsx_open(os.path.join('data', 'operations.xlsx'))
     cards_summary = {}
     
     for operation in cards:
@@ -70,7 +76,8 @@ def cards_info(target_date: datetime = None):
             cashback = round(amount * 0.01, 2)
             if target_date:
                 op_date = pd.to_datetime(operation.get('Дата операции'), format='%d.%m.%Y %H:%M:%S')
-                if op_date > target_date:
+                start_date = target_date - pd.DateOffset(months=3)
+                if not (start_date <= op_date <= target_date):
                     continue
             if last_digits in cards_summary:
                 cards_summary[last_digits]['total_spent'] += amount
@@ -100,19 +107,26 @@ def top_transactions(target_date: datetime = None):
     logger.info(f"Getting top transactions for date: {target_date}")
     transactions_data = []
     transactions_summary = {}
-    transactions = xlsx_open('../data/operations.xlsx')
+    transactions = xlsx_open(os.path.join('data', 'operations.xlsx'))
     df = pd.DataFrame(transactions)
+    
+    if df.empty:
+        return []
+        
     if target_date:
         df['Дата операции'] = pd.to_datetime(df['Дата операции'], format='%d.%m.%Y %H:%M:%S')
         start_date = target_date.replace(day=1, hour=0, minute=0, second=0)
         df = df[(df['Дата операции'] >= start_date) & (df['Дата операции'] <= target_date)]
     
-    sorted_transactions = df.sort_values(by='Сумма платежа').tail()
-    for i in reversed(range(5)):
+    if df.empty:
+        return []
+        
+    sorted_transactions = df.sort_values(by='Сумма операции').tail()
+    for i in range(min(5, len(sorted_transactions))):
         current = sorted_transactions.iloc[i]
         transactions_summary[i] = {
             'date': current['Дата операции'],
-            'amount': float(current['Сумма платежа']),
+            'amount': float(current['Сумма операции']),
             'category': current['Категория'],
             'description': current['Описание']
         }
@@ -128,7 +142,12 @@ def currency():
     logger.info("Getting currency rates")
     currency_rates = []
     rates = {}
-    info = open_file("../data/user_settings.json")
+    info = open_file(os.path.join("data", "user_settings.json"))
+    
+    if not info or "user_currencies" not in info:
+        logger.error("No user currencies found in settings")
+        return []
+    
     API_KEY = os.getenv("API_KEY")
     
     if not API_KEY:
@@ -161,7 +180,12 @@ def stocks():
     logger.info("Getting stock prices")
     current_stocks = []
     stock = {}
-    info = open_file("../data/user_settings.json")
+    info = open_file(os.path.join("data", "user_settings.json"))
+    
+    if not info or "user_stocks" not in info:
+        logger.error("No user stocks found in settings")
+        return []
+    
     API_STOCKS = os.getenv("API_STOCKS")
     
     if not API_STOCKS:
@@ -174,11 +198,12 @@ def stocks():
             url = f"https://financialmodelingprep.com/api/v3/stock/full/real-time-price/{i}?apikey={API_STOCKS}"
             response = requests.get(url)
             result = response.json()
-            stock[i] = {
-                'stock': i,
-                'price': result[0]['askPrice']
-            }
-            logger.info(f"Got price for {i}: {stock[i]['price']}")
+            if result and isinstance(result, list) and len(result) > 0:
+                stock[i] = {
+                    'stock': i,
+                    'price': result[0]['askPrice']
+                }
+                logger.info(f"Got price for {i}: {stock[i]['price']}")
         except Exception as e:
             logger.error(f"Error getting price for {i}: {str(e)}")
     

@@ -14,6 +14,9 @@ info = xlsx_open('../data/operations.xlsx')
 
 
 def cashbacks(data, year, month) -> dict:
+    if not data:
+        return {}
+        
     df = pd.DataFrame(data)
     df['Дата операции'] = pd.to_datetime(df['Дата операции'], format='%d.%m.%Y %H:%M:%S')
     filtered = df[
